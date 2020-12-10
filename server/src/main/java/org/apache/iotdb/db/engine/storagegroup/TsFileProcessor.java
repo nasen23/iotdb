@@ -218,15 +218,15 @@ public class TsFileProcessor {
       workMemTable = new PrimitiveMemTable(enableMemControl);
     }
 
-    try {
-      if (enableMemControl) {
-        checkMemCostAndAddToTspInfo(insertTabletPlan, start, end);
+    if (enableMemControl) {
+      try {
+          checkMemCostAndAddToTspInfo(insertTabletPlan, start, end);
+      } catch (Exception e) {
+        for (int i = start; i < end; i++) {
+          results[i] = RpcUtils.getStatus(TSStatusCode.WRITE_PROCESS_REJECT, e.getMessage());
+        }
+        throw new WriteProcessRejectException(e.getMessage());
       }
-    } catch (WriteProcessException e) {
-      for (int i = start; i < end; i++) {
-        results[i] = RpcUtils.getStatus(TSStatusCode.WRITE_PROCESS_REJECT, e.getMessage());
-      }
-      throw new WriteProcessException(e);
     }
     try {
       workMemTable.insertTablet(insertTabletPlan, start, end);
