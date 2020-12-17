@@ -32,6 +32,7 @@ import org.apache.iotdb.cluster.rpc.thrift.Node;
 import org.apache.iotdb.cluster.rpc.thrift.RaftService.AsyncClient;
 import org.apache.iotdb.cluster.rpc.thrift.RaftService.Client;
 import org.apache.iotdb.cluster.server.NodeCharacter;
+import org.apache.iotdb.cluster.server.PhiAccrualFailureDetector;
 import org.apache.iotdb.cluster.server.RaftServer;
 import org.apache.iotdb.cluster.server.handlers.caller.ElectionHandler;
 import org.apache.iotdb.cluster.server.handlers.caller.HeartbeatHandler;
@@ -51,6 +52,7 @@ public class HeartbeatThread implements Runnable {
   private static final Logger logger = LoggerFactory.getLogger(HeartbeatThread.class);
 
   private RaftMember localMember;
+  private PhiAccrualFailureDetector detector;
   private String memberName;
   HeartBeatRequest request = new HeartBeatRequest();
   ElectionRequest electionRequest = new ElectionRequest();
@@ -86,9 +88,7 @@ public class HeartbeatThread implements Runnable {
             break;
           case FOLLOWER:
             // check if heartbeat times out
-            long heartBeatInterval = System.currentTimeMillis() - localMember
-                .getLastHeartbeatReceivedTime();
-            if (heartBeatInterval >= RaftServer.getConnectionTimeoutInMS()) {
+            if (!localMember.getPhiAccrualFailureDetector().isAvailable(System.currentTimeMillis())) {
               // the leader is considered dead, an election will be started in the next loop
               logger.info("{}: The leader {} timed out", memberName, localMember.getLeader());
               localMember.setCharacter(NodeCharacter.ELECTOR);

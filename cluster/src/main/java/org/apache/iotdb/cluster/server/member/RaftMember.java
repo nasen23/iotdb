@@ -72,11 +72,7 @@ import org.apache.iotdb.cluster.rpc.thrift.HeartBeatResponse;
 import org.apache.iotdb.cluster.rpc.thrift.Node;
 import org.apache.iotdb.cluster.rpc.thrift.RaftService.AsyncClient;
 import org.apache.iotdb.cluster.rpc.thrift.RaftService.Client;
-import org.apache.iotdb.cluster.server.NodeCharacter;
-import org.apache.iotdb.cluster.server.Peer;
-import org.apache.iotdb.cluster.server.RaftServer;
-import org.apache.iotdb.cluster.server.Response;
-import org.apache.iotdb.cluster.server.Timer;
+import org.apache.iotdb.cluster.server.*;
 import org.apache.iotdb.cluster.server.Timer.Statistic;
 import org.apache.iotdb.cluster.server.handlers.caller.AppendNodeEntryHandler;
 import org.apache.iotdb.cluster.server.handlers.caller.GenericHandler;
@@ -245,6 +241,8 @@ public abstract class RaftMember {
    * logs.
    */
   private LogDispatcher logDispatcher;
+
+  protected PhiAccrualFailureDetector phiAccrualFailureDetector = new PhiAccrualFailureDetector.Builder().build();
 
   protected RaftMember() {
   }
@@ -626,7 +624,12 @@ public abstract class RaftMember {
   }
 
   public void setLastHeartbeatReceivedTime(long lastHeartbeatReceivedTime) {
+    phiAccrualFailureDetector.heartbeat(lastHeartbeatReceivedTime, true);
     this.lastHeartbeatReceivedTime = lastHeartbeatReceivedTime;
+  }
+
+  public PhiAccrualFailureDetector getPhiAccrualFailureDetector() {
+    return phiAccrualFailureDetector;
   }
 
   public Node getLeader() {
